@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
        const emailResponse = await sendVerificationEmail(email, username, verifyCode);
 
-       if(!emailResponse.sucess){
+       if(!emailResponse.success){
         return Response.json({
             success: false,
             message: "Failed to send verification email",
