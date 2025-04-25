@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [acceptMessages, setAcceptMessages] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [userLink , setUserLink] = useState("")
-  const [url] = useState("https://mystery-msg-git-main-koshik-mehtas-projects.vercel.app")
+  const [url] = useState("https://mystery-msg-tau.vercel.app")
 
 
   const { data: session, status } = useSession()
