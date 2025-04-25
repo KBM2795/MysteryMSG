@@ -21,13 +21,13 @@ export async function sendVerificationEmail(
          })
 
         return {
-            sucess: true,
+            success: true,
             message: "Verification email sent successfully",
         }
     } catch (error) {
         console.error("Error sending verification email:", error);
         return {
-            sucess: false,
+            success: false,
             message: "Failed to send verification email",
         };
     }
