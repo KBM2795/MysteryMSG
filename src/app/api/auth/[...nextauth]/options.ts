@@ -65,7 +65,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  trustHost: true, 
   session: {
     strategy: 'jwt',
   },
