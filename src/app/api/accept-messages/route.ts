@@ -20,6 +20,8 @@ export async function POST(request: Request) {
      const userId = user._id
 
      const{acceptMessages}= await request.json()
+     console.log(acceptMessages);
+     
 
      try {
         
@@ -35,7 +37,7 @@ export async function POST(request: Request) {
         return Response.json({
             success: true,
             message: "user accept messages updated successfully",
-            updatedUser
+            isAceptingMessages: updatedUser.isAcceptingMessage
         }, { status: 200 });
 
      } catch (error) {
@@ -79,7 +81,7 @@ export async function GET(request: Request) {
 
         return Response.json({
             success: true,
-            isAcceptingMessages: User.isAcceptingMessage,
+            isAceptingMessages: User.isAcceptingMessage,
         }, { status: 200 });
 
      } catch (error) {

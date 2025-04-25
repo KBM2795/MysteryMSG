@@ -1,62 +1,134 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Copy, MessageSquare, RefreshCw, Sparkles, LogOut } from "lucide-react"
+import { Copy, MessageSquare, RefreshCw, Sparkles, LogOut, Router } from "lucide-react"
 import { MessageItem } from "@/components/message-item"
-import { set } from "lodash"
+import { useSession ,signOut } from "next-auth/react"
+import { User } from "next-auth"
+import { useRouter } from "next/navigation"
+import axios, { AxiosError } from "axios"
+import { ApiResponse } from "@/types/ApiResponse"
+import { toast } from "sonner"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { boolean } from "zod"
 
 // Sample data for demonstration
-const messages = [
-  {
-    id: "1",
-    content: "What's your favorite movie?",
-    timestamp: "Apr 22, 2025 6:15 PM",
-  },
-  {
-    id: "2",
-    content: "I've always admired your creativity and positive attitude. You inspire me to be better!",
-    timestamp: "Apr 21, 2025 2:06 AM",
-  },
-  {
-    id: "3",
-    content: "What's something you've always wanted to learn, but haven't had the chance to yet?",
-    timestamp: "Apr 20, 2025 5:45 PM",
-  },
-  {
-    id: "4",
-    content: "Share a favorite childhood memory.",
-    timestamp: "Apr 19, 2025 9:01 PM",
-  },
-]
+
+
+interface Message {
+  _id: string;
+  content: string;
+  createdAt: string;
+}
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const [messages , setMessages] = useState<Message[]>([])
   const [copy , setcopy] = useState(false)
   const [acceptMessages, setAcceptMessages] = useState(true)
-  const [userLink] = useState("https://mysterymsg.com/u/username123")
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [userLink , setUserLink] = useState("")
+  const [url] = useState("http://localhost:3000")
+
+
+  const { data: session, status } = useSession()
+
+  const user: User = session?.user
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      const response = await axios.get<ApiResponse>("/api/get-messages")
+    
+      if(response.status === 200 || 201 ){
+        setMessages(response.data.messages as unknown as Message[])       
+      }else{
+        toast.error("Invalid message format received")
+      }
+     } catch (error) {
+      console.error("Error signing up:", error)
+      const axiosError = error as AxiosError<ApiResponse>
+      let errorMessage = axiosError.response?.data.message || "An error occurred with handleRefresh"
+      toast.error(errorMessage)
+     }finally{
+      setIsRefreshing(false)
+     }
+
+  }
+
+  useEffect( () => {
+    const setStaus = async ()=>{
+      if (session?.user?.username) {
+        setUserLink(`${url}/u/${user.username}`)    
+        try {
+          const response = await axios.get<ApiResponse>("/api/accept-messages")
+          console.log(response.data.isAceptingMessages);
+            setAcceptMessages(response.data.isAceptingMessages? true : false)  
+          if(!response.data.success){
+            toast.error("error fetching status of message")
+          }
+         } catch (error) {
+          console.error("Error signing up:", error)
+          const axiosError = error as AxiosError<ApiResponse>
+          let errorMessage = axiosError.response?.data.message || "An error occurred with setStaus"
+          toast.error(errorMessage)
+         }
+      }
+    }
+
+    handleRefresh();
+    setStaus();
+
+  }, [session])
+
+  const acceptMessage =async (e:boolean) =>{
+     try {
+      const response = await axios.post<ApiResponse>("/api/accept-messages",{acceptMessages: e} )
+
+      if(response.status === 200){
+        setAcceptMessages(response.data.isAceptingMessages? true : false)
+        toast.success(response.data.message)
+      }else{
+        toast.error(response.data.message)
+      }
+     } catch (error) {
+      console.error("Error signing up:", error)
+      const axiosError = error as AxiosError<ApiResponse>
+      let errorMessage = axiosError.response?.data.message || "An error occurred with acceptMessage"
+      toast.error(errorMessage)
+     }
+  }
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(userLink)
     setcopy(true)
   }
 
-  const handleRefresh = () => {
-    setIsRefreshing(true)
-    // In a real app, you would fetch new messages
-    setTimeout(() => {
-      setIsRefreshing(false)
-    }, 1000)
-  }
+  
 
-  const handleDeleteMessage = (id: string) => {
-    // In a real app, you would delete the message
-    console.log("Delete message", id)
+  const handleDeleteMessage = async (_id: string) => {
+    console.log(_id);
+    
+    try {
+      const response = await axios.post<ApiResponse>(`/api/delete_message?id=${_id}` )
+
+      if(response.status === 200){
+        handleRefresh();
+        toast.success(response.data.message)
+      }else{
+        toast.error(response.data.message)
+      }
+     } catch (error) {
+      console.error("Error signing up:", error)
+      const axiosError = error as AxiosError<ApiResponse>
+      let errorMessage = axiosError.response?.data.message || "An error occurred with acceptMessage"
+      toast.error(errorMessage)
+     }
   }
 
   return (
@@ -68,7 +140,7 @@ export default function DashboardPage() {
             <h1 className="text-lg font-bold text-white">MysteryMSG</h1>
           </div>
           <Link href="/">
-            <Button variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800">
+            <Button onClick={()=> signOut()} variant="ghost" size="sm" className="text-slate-300 hover:text-white hover:bg-slate-800">
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </Button>
@@ -91,7 +163,7 @@ export default function DashboardPage() {
               </Button>
             </div>
             <div className="flex items-center space-x-2 mt-4">
-              <Switch id="accept-messages" checked={acceptMessages} onCheckedChange={setAcceptMessages} />
+              <Switch id="accept-messages" checked={acceptMessages} onCheckedChange={(e)=>acceptMessage(e)} />
               <Label htmlFor="accept-messages" className="text-white">
                 Accept Messages: {acceptMessages ? "On" : "Off"}
               </Label>
@@ -114,7 +186,7 @@ export default function DashboardPage() {
 
           {messages.length > 0 ? (
                 messages.map((message) => (
-                  <MessageItem key={message.id} message={message} onDelete={() => handleDeleteMessage(message.id)} />
+                  <MessageItem key={message._id} message={message} onDelete={() => handleDeleteMessage(message._id)} />
                 ))
               ) : (
                 <div className="bg-slate-800/80 border border-purple-500/30 backdrop-blur-sm rounded-xl p-6 text-center">

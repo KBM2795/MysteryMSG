@@ -17,9 +17,9 @@ import {
 
 interface MessageItemProps {
   message: {
-    id: string
+    _id: string
     content: string
-    timestamp: string
+    createdAt: string
   }
   onDelete: () => void
 }
@@ -34,7 +34,7 @@ export function MessageItem({ message, onDelete }: MessageItemProps) {
       onMouseLeave={() => setIsHovered(false)}
     >
       <p className="text-white mb-2">{message.content}</p>
-      <p className="text-sm text-purple-400">{message.timestamp}</p>
+      <p className="text-sm text-purple-400">{message.createdAt}</p>
 
       <AlertDialog>
         <AlertDialogTrigger asChild>

@@ -1,40 +1,80 @@
 "use client"
 
 import { useState } from "react"
+import { use } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MessageSquare, ArrowLeft, Send, Sparkles } from "lucide-react"
+import axios, { AxiosError } from "axios"
+import { ApiResponse } from "@/types/ApiResponse"
+import { toast } from "sonner"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { boolean } from "zod"
 
 interface MessagePageProps {
-  params: {
+  params: Promise<{
     username: string
-  }
+  }>
 }
 
 export default function MessagePage({ params }: MessagePageProps) {
-  const { username } = params
+
+  const { username } = use(params)
   const [message, setMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
   const [isSent, setIsSent] = useState(false)
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestions, setSuggestions] = useState<string[]>([])
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!message.trim()) return
 
     setIsSending(true)
 
-    // In a real app, you would call an API to send the message
-    setTimeout(() => {
-      setIsSending(false)
-      setIsSent(true)
-      setMessage("")
+    try {
+      const response = await axios.post<ApiResponse>("/api/send-message", { username, content: message })
 
-      // Reset the sent state after a few seconds
+      if (!response.data.success) {
+        toast.error(response.data.message)
+        setIsSending(false)
+      } else {
+        setIsSending(false)
+        setIsSent(true)
+        setMessage("")
+      }
+
+    } catch (error) {
+      console.error("Error signing up:", error)
+      const axiosError = error as AxiosError<ApiResponse>
+      let errorMessage = axiosError.response?.data.message || "An error occurred with handleSendMessage"
+      toast.error(errorMessage)
+    } finally {
+      setIsSending(false)
       setTimeout(() => {
         setIsSent(false)
       }, 5000)
-    }, 1500)
+    }
+
+  }
+
+  const handleSuggestions = async () => {
+    try {
+      const response = await axios.get("/api/suggest-messages")
+
+      if (!response.data.success) {
+        toast.error("error fetching suggestions")
+      } else {
+        const suggestionsArray = response.data.questions.split("||").map((item: string) => item.trim())
+        setSuggestions(suggestionsArray)
+        setShowSuggestions(true)
+      }
+    } catch (error) {
+      console.error("Error signing up:", error)
+      const axiosError = error as AxiosError<ApiResponse>
+      let errorMessage = axiosError.response?.data.message || "An error occurred with handleSuggestions"
+      toast.error(errorMessage)
+    }
   }
 
   const handleSelectSuggestion = (suggestion: string) => {
@@ -79,7 +119,7 @@ export default function MessagePage({ params }: MessagePageProps) {
                 className="min-h-32 bg-slate-800/80 border-purple-500/30 text-white resize-none"
               />
               <Button
-                onClick={() => setShowSuggestions(!showSuggestions)}
+                onClick={() => handleSuggestions()}
                 variant="ghost"
                 size="icon"
                 className="absolute bottom-3 left-3 text-slate-400 hover:text-purple-400 hover:bg-slate-700"
@@ -113,16 +153,11 @@ export default function MessagePage({ params }: MessagePageProps) {
                   Message Suggestions
                 </h3>
                 <div className="grid grid-cols-1 gap-2">
-                  {[
-                    "What's your favorite movie?",
-                    "If you could travel anywhere, where would you go?",
-                    "What's something you're proud of that you accomplished recently?",
-                    "What's a skill you've always wanted to learn?",
-                  ].map((suggestion, index) => (
+                  {suggestions.map((suggestion, index) => (
                     <Button
                       key={index}
                       variant="outline"
-                      className="justify-start h-auto py-2 px-4 text-left border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white"
+                      className="justify-start h-auto py-2 px-4 text-left border-slate-700 text-slate-700 hover:bg-slate-700 hover:text-white"
                       onClick={() => handleSelectSuggestion(suggestion)}
                     >
                       {suggestion}
@@ -134,6 +169,22 @@ export default function MessagePage({ params }: MessagePageProps) {
           </div>
         )}
       </main>
+      <section className="bg-gradient-to-r from-purple-900/80 to-slate-800/80 border-y border-purple-500/30 backdrop-blur-sm py-12">
+        <div className="container mx-auto px-4 text-center">
+          <div className="max-w-2xl mx-auto space-y-6"></div>
+          <h2 className="text-3xl font-bold text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-300">
+            Create Your Mystery Profile
+          </h2>
+          <p className="text-lg text-slate-300 mb-6">
+            Join thousands of users receiving anonymous messages. Share your thoughts, spread positivity, and connect with others in a unique way!
+          </p>
+          <Link href="/">
+            <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold px-8 py-6 text-lg transform transition-transform hover:scale-105 shadow-lg hover:shadow-purple-500/25">
+              Get Started Now ✨
+            </Button>
+          </Link>
+        </div>
+      </section>
 
       <footer className="bg-slate-900/80 backdrop-blur-sm border-t border-purple-500/20 py-4">
         <div className="container mx-auto px-4 text-center text-slate-400 text-sm">
