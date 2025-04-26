@@ -71,7 +71,7 @@ export default function SignupPage() {
         setStep("otp")
         toast.success("Verification code sent to your email")
       } else {
-        toast.error("Failed to send verification code")
+        toast.error(response.data.message || "Error sending verification code")
       }
     } catch (error) {
       console.error("Error signing up:", error)
