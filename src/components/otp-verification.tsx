@@ -116,12 +116,7 @@ export function OtpVerification({ username }: OtpVerificationProps) {
           className="w-full bg-purple-500 hover:bg-purple-600 text-white"
           disabled={otp.some((digit) => !digit)}
         >
-          (isVerifying && {
-            <span className="text-gray-500">Verifying....</span>
-          })
-          (!isVerifying && {
-            <span>Verify</span>
-          })
+          {isVerifying ? "Verifying...." :"Verify"}
           
         </Button>
       </div>
